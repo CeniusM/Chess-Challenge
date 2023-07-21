@@ -7,48 +7,106 @@ namespace ChessChallenge.Example
     // Plays randomly otherwise.
     public class EvilBot : IChessBot
     {
-        // Piece values: null, pawn, knight, bishop, rook, queen, king
-        int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
+        Board board;
 
-        public Move Think(Board board, Timer timer)
+        public Move Think(Board inBoard, Timer inTimer)
         {
-            Move[] allMoves = board.GetLegalMoves();
+            board = inBoard;
 
-            // Pick a random move to play if nothing better is found
-            Random rng = new();
-            Move moveToPlay = allMoves[rng.Next(allMoves.Length)];
-            int highestValueCapture = 0;
+            Span<Move> moves = board.GetLegalMoves().AsSpan();
+            int count = moves.Length;
 
-            foreach (Move move in allMoves)
+            if (count == 1)
+                return moves[0];
+
+            //int alpha = -99999;
+            //int beta = 99999;
+
+            int bestMoveIndex = 0;
+            int bestMoveEval = board.IsWhiteToMove ? -99999 : 99999;
+            int eval = 0;
+
+
+            for (int i = 0; i < count; i++)
             {
-                // Always play checkmate in one
-                if (MoveIsCheckmate(board, move))
+                Move move = moves[i];
+                board.MakeMove(move);
+                eval = AlphaBeta(2, board.IsWhiteToMove, int.MinValue, int.MaxValue);//(board.playerTurn == 8) ? true : false
+                board.UndoMove(move);
+
+                if (board.IsWhiteToMove) // max
                 {
-                    moveToPlay = move;
-                    break;
+                    if (eval > bestMoveEval)
+                    {
+                        bestMoveEval = eval;
+                        bestMoveIndex = i;
+                    }
                 }
-
-                // Find highest value capture
-                Piece capturedPiece = board.GetPiece(move.TargetSquare);
-                int capturedPieceValue = pieceValues[(int)capturedPiece.PieceType];
-
-                if (capturedPieceValue > highestValueCapture)
+                else    // min
                 {
-                    moveToPlay = move;
-                    highestValueCapture = capturedPieceValue;
+                    if (eval < bestMoveEval)
+                    {
+                        bestMoveEval = eval;
+                        bestMoveIndex = i;
+                    }
                 }
             }
 
-            return moveToPlay;
+            return moves[bestMoveIndex];
         }
 
-        // Test if this move gives checkmate
-        bool MoveIsCheckmate(Board board, Move move)
+        int AlphaBeta(int depth, bool maxPlayer, int alpha, int beta)
         {
-            board.MakeMove(move);
-            bool isMate = board.IsInCheckmate();
-            board.UndoMove(move);
-            return isMate;
+            if (depth == 0)
+                return Evalutate();
+
+            Span<Move> moves = board.GetLegalMoves().AsSpan();
+            int Count = moves.Length;
+
+            if (Count == 0) // Later make captures
+                return Evalutate();
+
+            if (maxPlayer)
+            {
+                int maxEval = int.MinValue;
+                foreach (Move move in moves)
+                {
+                    board.MakeMove(move);
+                    int eval = AlphaBeta(depth - 1, false, alpha, beta);
+                    board.UndoMove(move);
+                    maxEval = Math.Max(maxEval, eval);
+                    alpha = Math.Max(alpha, eval);
+                    if (beta >= alpha)
+                        break;
+                }
+                return maxEval;
+            }
+            else
+            {
+                int minEval = int.MaxValue;
+                foreach (Move move in moves)
+                {
+                    board.MakeMove(move);
+                    int eval = AlphaBeta(depth - 1, true, alpha, beta);
+                    board.UndoMove(move);
+                    minEval = Math.Min(minEval, eval);
+                    beta = Math.Min(beta, eval);
+                    if (alpha >= beta)
+                        break;
+                }
+                return minEval;
+            }
+        }
+
+        int Evalutate()
+        {
+            if (board.IsInCheckmate())
+                return board.IsWhiteToMove ? -99999 : 99999;
+
+            PieceList[] pieces = board.GetAllPieceLists();
+
+            return (pieces[0].Count * 100 + pieces[1].Count * 300 + pieces[2].Count * 300 + pieces[3].Count * 500 + pieces[4].Count * 900) -
+                (pieces[6].Count * 100 + pieces[7].Count * 300 + pieces[8].Count * 300 + pieces[9].Count * 500 + pieces[10].Count * 900);
         }
     }
 }
