@@ -47,19 +47,28 @@ while (true)
     {
         Console.WriteLine("Tokens count: " + tokens + "/1024    ");
 
-        Float64 barPercent = (Float64)tokens / 1024;
-        int barSize = (int)(barPercent * BarWidth);
-        Console.Write("[");
-        if (barPercent < 0.40)
-            Console.ForegroundColor = ConsoleColor.Green;
-        else if (barPercent < 0.80)
-            Console.ForegroundColor = ConsoleColor.Yellow;
+        if (tokens < 1024)
+        {
+            Float64 barPercent = (Float64)tokens / 1024;
+            int barSize = (int)(barPercent * BarWidth);
+            Console.Write("[");
+            if (barPercent < 0.40)
+                Console.ForegroundColor = ConsoleColor.Green;
+            else if (barPercent < 0.80)
+                Console.ForegroundColor = ConsoleColor.Yellow;
+            else
+                Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write(new string('█', barSize));
+            Console.Write(new string(' ', BarWidth - barSize));
+            Console.ResetColor();
+            Console.Write("]");
+        }
         else
+        {
             Console.ForegroundColor = ConsoleColor.Red;
-        Console.Write(new string('█', barSize));
-        Console.Write(new string(' ', BarWidth - barSize));
-        Console.ResetColor();
-        Console.Write("]");
+            Console.WriteLine("Maxed");
+            Console.ResetColor();
+        }
     }
     else
     {
